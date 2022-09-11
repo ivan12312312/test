@@ -191,15 +191,41 @@ open class MusicService : MediaBrowserServiceCompat() {
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
-        result.sendResult(deviceMusics)
+        var newDeviceMusics = loadDeviceMusics()
+        var currentMusicsMap = hashMapOf<String?, MediaBrowserCompat.MediaItem>()
+        deviceMusics.forEach {
+            dm -> currentMusicsMap[dm.mediaId] = dm
+        }
+        newDeviceMusics.forEach { nDm ->
+            run {
+                if (!currentMusicsMap.containsKey(nDm.mediaId)) {
+                    Log.e("addMediaItem", nDm.mediaId.toString())
+                    player.addMediaItem(
+                        MediaItem.Builder()
+                            .setUri(nDm.description.mediaUri!!)
+                            .setTag(nDm)
+                            .build()
+                    )
+                }
+            }
+        }
+        deviceMusics = newDeviceMusics
+
+        result.sendResult(newDeviceMusics)
     }
 
     override fun onDestroy() {
+        stopForeground(true)
+        isForegroundService = false
+
         mediaSession.run {
             isActive = false
             release()
         }
+
         player.release()
+
+        stopSelf()
     }
 
     fun loadDeviceMusics(): MutableList<MediaBrowserCompat.MediaItem> {

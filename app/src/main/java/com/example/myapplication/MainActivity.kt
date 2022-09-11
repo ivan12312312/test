@@ -81,6 +81,7 @@ class PlayerListAdapter(
 class MainActivity : AppCompatActivity() {
     lateinit var mediaBrowser: MediaBrowserCompat
     lateinit var mediaController: MediaControllerCompat
+    lateinit var mediaControllerCallback: MediaControllerCompat.Callback
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,40 +148,43 @@ class MainActivity : AppCompatActivity() {
                                     playStopBtn.setImageResource(R.drawable.ic_play)
                                 }
                             }
-                            mediaController.registerCallback(
-                                object : MediaControllerCompat.Callback() {
-                                    @SuppressLint("NotifyDataSetChanged")
-                                    override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
-                                        if(
-                                            state == null ||
-                                            state.state == PlaybackState.STATE_BUFFERING
-                                        ) {
-                                            return
-                                        }
-
-                                        musics[currentMusicId.toInt()].isPlay = false
-                                        when(state.state) {
-                                            PlaybackState.STATE_PLAYING -> {
-                                                musics[state.activeQueueItemId.toInt()].isPlay = true
-                                                playStopBtn.setImageResource(R.drawable.ic_pause)
-                                            }
-                                            else -> {
-                                                playStopBtn.setImageResource(R.drawable.ic_play)
-                                            }
-                                        }
-                                        currentMusicId = mediaController.playbackState.activeQueueItemId
-                                        playerList.adapter?.notifyDataSetChanged()
-
-                                        playerProgress.progress = state.position.toInt()
+                            mediaControllerCallback = object : MediaControllerCompat.Callback() {
+                                @SuppressLint("NotifyDataSetChanged")
+                                override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
+                                    if(
+                                        state == null ||
+                                        state.state == PlaybackState.STATE_BUFFERING
+                                    ) {
+                                        return
                                     }
-                                    override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-                                        playerProgress.max = mediaController
-                                            .metadata
-                                            .getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
-                                            .toInt()
+
+                                    Log.e("debug", musics.size.toString())
+                                    Log.e("debug", musics.map { i -> i.title }.toString())
+                                    Log.e("debug", currentMusicId.toString())
+                                    musics[currentMusicId.toInt()].isPlay = false
+                                    when(state.state) {
+                                        PlaybackState.STATE_PLAYING -> {
+                                            Log.e("debug", state.activeQueueItemId.toString())
+                                            musics[state.activeQueueItemId.toInt()].isPlay = true
+                                            playStopBtn.setImageResource(R.drawable.ic_pause)
+                                        }
+                                        else -> {
+                                            playStopBtn.setImageResource(R.drawable.ic_play)
+                                        }
                                     }
+                                    currentMusicId = mediaController.playbackState.activeQueueItemId
+                                    playerList.adapter?.notifyDataSetChanged()
+
+                                    playerProgress.progress = state.position.toInt()
                                 }
-                            )
+                                override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
+                                    playerProgress.max = mediaController
+                                        .metadata
+                                        .getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+                                        .toInt()
+                                }
+                            }
+                            mediaController.registerCallback(mediaControllerCallback)
 
                             var isSkipSeekBarUpdate = false
                             playerProgress.max = mediaController
@@ -245,6 +249,9 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
+        mediaController.unregisterCallback(mediaControllerCallback)
+
+        mediaBrowser.unsubscribe("/")
         mediaBrowser.disconnect()
     }
 }
