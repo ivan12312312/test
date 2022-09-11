@@ -52,7 +52,6 @@ open class MusicService : MediaBrowserServiceCompat() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.e("onCreate MusicService", "*")
 
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
@@ -96,7 +95,6 @@ open class MusicService : MediaBrowserServiceCompat() {
         mediaController.registerCallback(object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                 super.onPlaybackStateChanged(state)
-                Log.e("test", state.toString())
                 mediaController.playbackState
                 if(state?.state == 3) {
                     audioManager.requestAudioFocus(focusRequest)
@@ -134,7 +132,6 @@ open class MusicService : MediaBrowserServiceCompat() {
                 .build()
         })
         player.prepare()
-        Log.e("test", "prepare")
     }
 
     private inner class PlayerNotificationListener :
@@ -156,7 +153,6 @@ open class MusicService : MediaBrowserServiceCompat() {
         }
 
         override fun onNotificationCancelled(notificationId: Int, dismissedByUser: Boolean) {
-            Log.e("tag", "test")
             stopForeground(true)
             isForegroundService = false
             stopSelf()
@@ -170,8 +166,6 @@ open class MusicService : MediaBrowserServiceCompat() {
             controller.sessionActivity
 
         override fun getCurrentContentText(player: Player): String {
-            Log.e("data", mediaSession.controller.metadata.description.toString())
-            Log.e("test", mediaController.metadata.toString())
             return mediaController.metadata.description.subtitle.toString()
         }
 
@@ -222,9 +216,7 @@ open class MusicService : MediaBrowserServiceCompat() {
             null,
             null,
         )
-        Log.i("scan", "view create")
         if(cursor != null) {
-            Log.i("scan", "run while")
             while (cursor.moveToNext()) {
                 val path = cursor.getString(0)
                 if(!path.endsWith(".mp3")) {
@@ -246,7 +238,6 @@ open class MusicService : MediaBrowserServiceCompat() {
                         MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
                     )
                 )
-                Log.i("scan", cursor.getString(0))
             }
 
             cursor.close();

@@ -8,6 +8,7 @@ import android.media.browse.MediaBrowser
 import android.media.session.PlaybackState
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
@@ -17,6 +18,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.SeekBar
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -84,7 +86,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Log.e("startConnecting", "*")
         mediaBrowser = MediaBrowserCompat(
             applicationContext,
             ComponentName(applicationContext, MusicService::class.java),
@@ -94,14 +95,13 @@ class MainActivity : AppCompatActivity() {
                         return
                     }
 
-                    Log.e("onConnected", "*" + mediaBrowser.root,)
-
                     mediaBrowser.subscribe("/", object : MediaBrowserCompat.SubscriptionCallback() {
                         override fun onChildrenLoaded(
                             parentId: String,
                             children: MutableList<MediaBrowserCompat.MediaItem>
                         ) {
                             val playerList = findViewById<RecyclerView>(R.id.player_list)
+                            val playerProgress = findViewById<SeekBar>(R.id.player_sound_progress)
                             val prevBtn = findViewById<ImageButton>(R.id.prev)
                             val playStopBtn = findViewById<ImageButton>(R.id.run)
                             val nextBtn = findViewById<ImageButton>(R.id.next)
@@ -131,7 +131,6 @@ class MainActivity : AppCompatActivity() {
                                     mediaController.transportControls.play()
                                 }
                             }
-                            Log.e("mediaBrowser.subscribe", musics.toString())
 
 
                             mediaController = MediaControllerCompat(
@@ -139,6 +138,15 @@ class MainActivity : AppCompatActivity() {
                                 mediaBrowser.sessionToken,
                             )
                             var currentMusicId: Long = mediaController.playbackState.activeQueueItemId
+                            when(mediaController.playbackState.state) {
+                                PlaybackState.STATE_PLAYING -> {
+                                    musics[currentMusicId.toInt()].isPlay = true
+                                    playStopBtn.setImageResource(R.drawable.ic_pause)
+                                }
+                                else -> {
+                                    playStopBtn.setImageResource(R.drawable.ic_play)
+                                }
+                            }
                             mediaController.registerCallback(
                                 object : MediaControllerCompat.Callback() {
                                     @SuppressLint("NotifyDataSetChanged")
@@ -151,38 +159,74 @@ class MainActivity : AppCompatActivity() {
                                         }
 
                                         musics[currentMusicId.toInt()].isPlay = false
-                                        Log.e("test****", state.state.toString())
-                                        if(state.state == PlaybackState.STATE_PLAYING) {
-                                            musics[state.activeQueueItemId.toInt()].isPlay = true
-                                            playStopBtn.setImageResource(R.drawable.ic_pause)
-                                        } else {
-                                            playStopBtn.setImageResource(R.drawable.ic_play)
+                                        when(state.state) {
+                                            PlaybackState.STATE_PLAYING -> {
+                                                musics[state.activeQueueItemId.toInt()].isPlay = true
+                                                playStopBtn.setImageResource(R.drawable.ic_pause)
+                                            }
+                                            else -> {
+                                                playStopBtn.setImageResource(R.drawable.ic_play)
+                                            }
                                         }
                                         currentMusicId = mediaController.playbackState.activeQueueItemId
                                         playerList.adapter?.notifyDataSetChanged()
 
-                                        Log.e(
-                                            "MediaControllerCompat.callback.onPlaybackStateChanged",
-                                            state.toString()
-                                        )
+                                        playerProgress.progress = state.position.toInt()
                                     }
                                     override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
-                                        Log.e(
-                                            "MediaControllerCompat.callback.onMetadataChanged",
-                                            metadata.toString()
-                                        )
+                                        playerProgress.max = mediaController
+                                            .metadata
+                                            .getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+                                            .toInt()
                                     }
                                 }
                             )
+
+                            var isSkipSeekBarUpdate = false
+                            playerProgress.max = mediaController
+                                .metadata
+                                .getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+                                .toInt()
+
+                            val handler = Handler()
+                            handler.postDelayed(object : Runnable{
+                                override fun run() {
+                                    handler.postDelayed(this, 1000)
+                                    if(isSkipSeekBarUpdate) {
+                                        return
+                                    }
+                                    playerProgress.progress = mediaController.playbackState.position.toInt()
+                                }
+                            }, 0)
+                            playerProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                                override fun onStartTrackingTouch(seekbar: SeekBar?) {
+                                    isSkipSeekBarUpdate = true
+                                }
+                                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                                    mediaController.transportControls.seekTo(
+                                        playerProgress.progress.toLong()
+                                    )
+                                    isSkipSeekBarUpdate = false
+                                }
+
+                                override fun onProgressChanged(
+                                    seekBar: SeekBar?,
+                                    position: Int,
+                                    isUser: Boolean
+                                ) {}
+                            })
 
                             prevBtn.setOnClickListener {
                                 mediaController.transportControls.skipToPrevious()
                             }
                             playStopBtn.setOnClickListener {
-                                if (mediaController.playbackState.state == PlaybackState.STATE_PAUSED) {
-                                    mediaController.transportControls.play()
-                                } else {
-                                    mediaController.transportControls.pause()
+                                when(mediaController.playbackState.state) {
+                                    PlaybackState.STATE_PAUSED -> {
+                                        mediaController.transportControls.play()
+                                    }
+                                    else -> {
+                                        mediaController.transportControls.pause()
+                                    }
                                 }
                             }
                             nextBtn.setOnClickListener {
@@ -201,7 +245,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        Log.e("test", "destroy")
         mediaBrowser.disconnect()
     }
 }
