@@ -192,9 +192,9 @@ open class MusicService : MediaBrowserServiceCompat() {
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
         var newDeviceMusics = loadDeviceMusics()
-        var currentMusicsMap = hashMapOf<String?, MediaBrowserCompat.MediaItem>()
-        deviceMusics.forEach {
-            dm -> currentMusicsMap[dm.mediaId] = dm
+        var currentMusicsMap = hashMapOf<String?, Pair<Int, MediaBrowserCompat.MediaItem>>()
+        deviceMusics.forEachIndexed {
+            index, dm -> currentMusicsMap[dm.mediaId] = Pair(index, dm)
         }
         newDeviceMusics.forEach { nDm ->
             run {
@@ -206,9 +206,19 @@ open class MusicService : MediaBrowserServiceCompat() {
                             .setTag(nDm)
                             .build()
                     )
+                } else {
+                    currentMusicsMap.remove(nDm.mediaId)
                 }
             }
         }
+        currentMusicsMap.values.toTypedArray()
+            .map { entry -> entry.first }
+            .sorted()
+            .reversed()
+            .forEach {
+                removeMediaIndex -> player.removeMediaItem(removeMediaIndex)
+            }
+
         deviceMusics = newDeviceMusics
 
         result.sendResult(newDeviceMusics)
