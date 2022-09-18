@@ -57,6 +57,7 @@ open class MusicService : MediaBrowserServiceCompat() {
             MediaDescriptionCompat
                 .Builder()
                 .setMediaId(station.uri)
+                .setMediaUri(Uri.parse(station.uri))
                 .setTitle(station.title)
                 .setSubtitle("")
                 .build(),
@@ -105,6 +106,9 @@ open class MusicService : MediaBrowserServiceCompat() {
 
         deviceMusicsPlayer = ExoPlayer.Builder(this).build()
         deviceMusicsPlayer.repeatMode = Player.REPEAT_MODE_ALL;
+        radioStationsPlayer = ExoPlayer.Builder(this).build()
+        radioStationsPlayer.repeatMode = Player.REPEAT_MODE_ALL;
+
 
         mediaSessionConnector = MediaSessionConnector(mediaSession)
         mediaSessionConnector.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
@@ -112,15 +116,40 @@ open class MusicService : MediaBrowserServiceCompat() {
                 player: Player,
                 windowIndex: Int
             ): MediaDescriptionCompat {
-                if (windowIndex < deviceMusicsList.size) {
-                    return deviceMusicsList[windowIndex].description
+                if(playlist === Playlist.DEVICE_MUSICS) {
+                    if (windowIndex < deviceMusicsList.size) {
+                        return deviceMusicsList[windowIndex].description
+                    }
+                } else {
+                    if (windowIndex < stationsList.size) {
+                        return stationsList[windowIndex].description
+                    }
                 }
+
                 return MediaDescriptionCompat.Builder().build()
             }
         })
 
-        mediaSessionConnector.registerCustomCommandReceiver { _, command, _, _ ->
+        mediaSessionConnector.registerCustomCommandReceiver { _, command, b, _ ->
             Log.e("get command 2", command)
+            if(command == "switch player to") {
+                Log.e("get command 2", command)
+                val newPlayerId = b?.getString("player")
+                    ?: return@registerCustomCommandReceiver true
+
+                if(newPlayerId == Playlist.RADIO_STATIONS.id) {
+                    deviceMusicsPlayer.pause()
+                    mediaSessionConnector.setPlayer(radioStationsPlayer)
+                    notificationManager.setPlayer(radioStationsPlayer)
+                    playlist = Playlist.RADIO_STATIONS
+                } else {
+                    radioStationsPlayer.pause()
+                    mediaSessionConnector.setPlayer(deviceMusicsPlayer)
+                    notificationManager.setPlayer(deviceMusicsPlayer)
+                    playlist = Playlist.DEVICE_MUSICS
+                }
+                return@registerCustomCommandReceiver true
+            }
             false
         }
 
@@ -167,6 +196,14 @@ open class MusicService : MediaBrowserServiceCompat() {
                 .build()
         })
         deviceMusicsPlayer.prepare()
+
+        radioStationsPlayer.setMediaItems(stationsList.map { mi ->
+            MediaItem.Builder()
+                .setUri(mi.description.mediaUri!!)
+                .setTag(mi)
+                .build()
+        })
+        radioStationsPlayer.prepare()
     }
 
     private inner class PlayerNotificationListener :
