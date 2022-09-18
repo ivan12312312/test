@@ -7,15 +7,45 @@
 	android:background="@color/black"
 	tools:context=".MainActivity"
 	>
+	<ImageButton
+		android:id="@+id/switch_to_list_device_musics"
+		app:layout_constraintTop_toTopOf="parent"
+		app:layout_constraintLeft_toLeftOf="@id/player_left"
+		app:layout_constraintRight_toLeftOf="@id/switch_to_list_radio_stations"
+		android:layout_height="32dp"
+		android:layout_width="0dp"
+		android:src="@drawable/ic_play"
+		android:background="@drawable/roundcorner_rectangle_top_left_round"
+		/>
+	<ImageButton
+		android:id="@+id/switch_to_list_radio_stations"
+		app:layout_constraintTop_toTopOf="parent"
+		app:layout_constraintLeft_toRightOf="@id/switch_to_list_device_musics"
+		app:layout_constraintRight_toRightOf="@id/player_right"
+		android:layout_height="32dp"
+		android:layout_width="0dp"
+		android:src="@drawable/ic_play"
+		android:background="@drawable/roundcorner_rectangle_top_right_round"
+		/>
+
 	<androidx.recyclerview.widget.RecyclerView
-		android:id="@+id/player_list"
+		android:id="@+id/device_musics_list"
 		android:layout_width="0dp"
 		android:layout_height="0dp"
-		app:layout_constraintTop_toTopOf="parent"
+		app:layout_constraintTop_toBottomOf="@id/switch_to_list_device_musics"
 		app:layout_constraintStart_toStartOf="@id/player_left"
 		app:layout_constraintEnd_toEndOf="@id/player_right"
 		app:layout_constraintBottom_toTopOf="@id/player_controls"
-		android:layout_marginTop="16dp"
+		/>
+	<androidx.recyclerview.widget.RecyclerView
+		android:id="@+id/radio_stations_list"
+		android:layout_width="0dp"
+		android:layout_height="0dp"
+		app:layout_constraintTop_toBottomOf="@id/switch_to_list_device_musics"
+		app:layout_constraintStart_toStartOf="@id/player_left"
+		app:layout_constraintEnd_toEndOf="@id/player_right"
+		app:layout_constraintBottom_toTopOf="@id/player_controls"
+		android:visibility="gone"
 		/>
 
 	<androidx.constraintlayout.widget.Guideline
@@ -58,26 +88,26 @@
 		android:background="@null"
 		/>
 	<ImageButton
-		android:id="@+id/prev"
+		android:id="@+id/prevButton"
 		android:src="@drawable/ic_prev"
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		app:layout_constraintStart_toStartOf="@id/player_left"
-		app:layout_constraintTop_toTopOf="@id/run"
-		app:layout_constraintBottom_toBottomOf="@id/run"
-		app:layout_constraintEnd_toStartOf="@+id/run"
+		app:layout_constraintTop_toTopOf="@id/playStopButton"
+		app:layout_constraintBottom_toBottomOf="@id/playStopButton"
+		app:layout_constraintEnd_toStartOf="@+id/playStopButton"
 		app:layout_constraintHorizontal_chainStyle="packed"
 		android:textColor="@color/white"
 		android:background="@drawable/roundcorner"
 		tools:ignore="ContentDescription" />
 	<ImageButton
-		android:id="@+id/run"
+		android:id="@+id/playStopButton"
 		android:layout_width="64dp"
 		android:layout_height="64dp"
 		android:src="@drawable/ic_play"
-		app:layout_constraintStart_toEndOf="@id/prev"
+		app:layout_constraintStart_toEndOf="@id/prevButton"
 		app:layout_constraintTop_toBottomOf="@id/player_sound_progress"
-		app:layout_constraintEnd_toStartOf="@id/next"
+		app:layout_constraintEnd_toStartOf="@id/nextButton"
 		android:layout_marginTop="24dp"
 		android:layout_marginStart="16dp"
 		android:layout_marginEnd="16dp"
@@ -85,13 +115,13 @@
 		android:background="@drawable/roundcorner"
 		tools:ignore="ContentDescription" />
 	<ImageButton
-		android:id="@+id/next"
+		android:id="@+id/nextButton"
 		android:layout_width="48dp"
 		android:layout_height="48dp"
 		android:src="@drawable/ic_next"
-		app:layout_constraintStart_toEndOf="@id/run"
-		app:layout_constraintTop_toTopOf="@id/run"
-		app:layout_constraintBottom_toBottomOf="@id/run"
+		app:layout_constraintStart_toEndOf="@id/playStopButton"
+		app:layout_constraintTop_toTopOf="@id/playStopButton"
+		app:layout_constraintBottom_toBottomOf="@id/playStopButton"
 		app:layout_constraintEnd_toEndOf="@id/player_right"
 		android:textColor="@color/white"
 		android:background="@drawable/roundcorner"
