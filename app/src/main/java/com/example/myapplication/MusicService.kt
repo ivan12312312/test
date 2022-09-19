@@ -116,12 +116,14 @@ open class MusicService : MediaBrowserServiceCompat() {
                 player: Player,
                 windowIndex: Int
             ): MediaDescriptionCompat {
-                if(playlist === Playlist.DEVICE_MUSICS) {
+                Log.e("change notification description", playlist.id)
+                if(playlist.id == Playlist.DEVICE_MUSICS.id) {
                     if (windowIndex < deviceMusicsList.size) {
                         return deviceMusicsList[windowIndex].description
                     }
                 } else {
                     if (windowIndex < stationsList.size) {
+                        Log.e("change notification description", "stations ***")
                         return stationsList[windowIndex].description
                     }
                 }
@@ -130,24 +132,40 @@ open class MusicService : MediaBrowserServiceCompat() {
             }
         })
 
-        mediaSessionConnector.registerCustomCommandReceiver { _, command, b, _ ->
-            Log.e("get command 2", command)
+        mediaSessionConnector.registerCustomCommandReceiver { _, command, b, result ->
             if(command == "switch player to") {
-                Log.e("get command 2", command)
                 val newPlayerId = b?.getString("player")
                     ?: return@registerCustomCommandReceiver true
+                Log.e("get command 2", command)
+                Log.e("get command 2", newPlayerId)
 
                 if(newPlayerId == Playlist.RADIO_STATIONS.id) {
                     deviceMusicsPlayer.pause()
                     mediaSessionConnector.setPlayer(radioStationsPlayer)
                     notificationManager.setPlayer(radioStationsPlayer)
+                    radioStationsPlayer.prepare()
                     playlist = Playlist.RADIO_STATIONS
                 } else {
                     radioStationsPlayer.pause()
                     mediaSessionConnector.setPlayer(deviceMusicsPlayer)
                     notificationManager.setPlayer(deviceMusicsPlayer)
+                    deviceMusicsPlayer.prepare()
                     playlist = Playlist.DEVICE_MUSICS
                 }
+                mediaSessionConnector.invalidateMediaSessionMetadata()
+                mediaSessionConnector.invalidateMediaSessionPlaybackState()
+                mediaSessionConnector.invalidateMediaSessionQueue()
+                radioStationsPlayer.setMediaItems(stationsList.map { mi ->
+                    MediaItem.Builder()
+                        .setUri(mi.description.mediaUri!!)
+                        .setTag(mi)
+                        .build()
+                })
+                radioStationsPlayer.prepare()
+                notificationManager.invalidate()
+                Log.e("music service switched player", "")
+                result?.send(0, null)
+
                 return@registerCustomCommandReceiver true
             }
             false
@@ -238,6 +256,7 @@ open class MusicService : MediaBrowserServiceCompat() {
             controller.sessionActivity
 
         override fun getCurrentContentText(player: Player): String {
+            Log.e("get current content text", playlist.id)
             return mediaController.metadata.description.subtitle.toString()
         }
 

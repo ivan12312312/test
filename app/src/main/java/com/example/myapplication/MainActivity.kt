@@ -304,6 +304,9 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
                                 if(playSoundFrom != Playlist.DEVICE_MUSICS.id) {
+                                    playSoundFrom = Playlist.DEVICE_MUSICS.id
+                                    handle()
+
                                     val params = Bundle()
                                     params.putString("player", Playlist.DEVICE_MUSICS.id)
                                     mediaController.sendCommand(
@@ -314,8 +317,9 @@ class MainActivity : AppCompatActivity() {
                                                 resultCode: Int,
                                                 resultData: Bundle?
                                             ) {
-                                                handle()
                                                 playSoundFrom = Playlist.DEVICE_MUSICS.id
+                                                handle()
+                                                Log.e("result receiver", "data")
                                             }
                                         }
                                     )
@@ -377,8 +381,9 @@ class MainActivity : AppCompatActivity() {
                                                 resultCode: Int,
                                                 resultData: Bundle?
                                             ) {
-                                                handle()
                                                 playSoundFrom = Playlist.RADIO_STATIONS.id
+                                                handle()
+                                                Log.e("result receiver", "data")
                                             }
                                         }
                                     )
