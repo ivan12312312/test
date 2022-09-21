@@ -26,14 +26,14 @@
 		android:gravity="center_vertical"
 		>
 		<TextView
-			android:id="@+id/music_name"
+			android:id="@+id/title"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="Это титле"
 			android:textSize="16sp"
 			android:textColor="@color/white" />
 		<TextView
-			android:id="@+id/music_author"
+			android:id="@+id/subtitle"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:text="Это автор 12312 312 3"

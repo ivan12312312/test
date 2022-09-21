@@ -34,14 +34,37 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager
 const val NOW_PLAYING_CHANNEL_ID = "com.example.android.uamp.media.NOW_PLAYING"
 const val NOW_PLAYING_NOTIFICATION_ID = 0xb339 // Arbitrary number used to identify our notification
 
+enum class Playlist {
+    DEVICE_MUSICS,
+    ONLINE_RADIO_STATIONS,
+}
+enum class MusicServiceCommands {
+    SWITCH_PLAYLIST
+}
+
 open class MusicService : MediaBrowserServiceCompat() {
     protected lateinit var mediaSession: MediaSessionCompat
     protected lateinit var mediaController: MediaControllerCompat
     protected lateinit var notificationManager: PlayerNotificationManager
     protected lateinit var player: ExoPlayer
-    protected var deviceMusics: MutableList<
+    protected var currentPlaylist: Playlist = Playlist.DEVICE_MUSICS
+    protected var deviceMusicsList: MutableList<
         MediaBrowserCompat.MediaItem
     > = mutableListOf()
+    protected var onlineStationsList: MutableList<
+            MediaBrowserCompat.MediaItem
+            > = onlineRadioStations.map { station ->
+        MediaBrowserCompat.MediaItem(
+            MediaDescriptionCompat
+                .Builder()
+                .setMediaId(station.uri)
+                .setMediaUri(Uri.parse(station.uri))
+                .setTitle(station.title)
+                .setSubtitle("")
+                .build(),
+            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+        )
+    }.toMutableList()
     protected var isForegroundService = false
 
     @SuppressLint("RestrictedApi")
@@ -72,21 +95,68 @@ open class MusicService : MediaBrowserServiceCompat() {
 
         sessionToken = mediaSession.sessionToken
 
-        deviceMusics = loadDeviceMusics()
+        deviceMusicsList = loadDeviceMusics()
 
         player = ExoPlayer.Builder(this).build()
         player.repeatMode = Player.REPEAT_MODE_ALL;
 
         val mediaSessionConnector = MediaSessionConnector(mediaSession)
+        mediaSessionConnector.registerCustomCommandReceiver { _, command, extras, cb ->
+            Log.e("command_--", command)
+            Log.e("command_--", MusicServiceCommands.SWITCH_PLAYLIST.name)
+            Log.e("command_--", extras.toString())
+            if(command != MusicServiceCommands.SWITCH_PLAYLIST.name || extras == null) {
+                Log.e("command_-- AAAAAAAAAAAAAAAAAAA", (command !== MusicServiceCommands.SWITCH_PLAYLIST.name).toString())
+                Log.e("command_-- AAAAAAAAAAAAAAAAAAA", (extras == null).toString())
+                return@registerCustomCommandReceiver false
+            }
+            Log.e("command", command)
+
+            when(extras.getString("playlist")) {
+                Playlist.DEVICE_MUSICS.name -> {
+                    currentPlaylist = Playlist.DEVICE_MUSICS
+                    player.setMediaItems(deviceMusicsList.map { mi ->
+                        MediaItem.Builder()
+                            .setUri(mi.description.mediaUri!!)
+                            .setTag(mi)
+                            .build()
+                    })
+                }
+                Playlist.ONLINE_RADIO_STATIONS.name -> {
+                    currentPlaylist = Playlist.ONLINE_RADIO_STATIONS
+                    player.setMediaItems(onlineStationsList.map { mi ->
+                        MediaItem.Builder()
+                            .setUri(mi.description.mediaUri!!)
+                            .setTag(mi)
+                            .build()
+                    })
+                }
+            }
+            mediaSessionConnector.invalidateMediaSessionPlaybackState()
+
+            cb?.send(0, null)
+
+            return@registerCustomCommandReceiver true;
+        }
         mediaSessionConnector.setQueueNavigator(object : TimelineQueueNavigator(mediaSession) {
             override fun getMediaDescription(
                 player: Player,
                 windowIndex: Int
             ): MediaDescriptionCompat {
-                if (windowIndex < deviceMusics.size) {
-                    return deviceMusics[windowIndex].description
+                when(currentPlaylist) {
+                    Playlist.DEVICE_MUSICS -> {
+                        if (windowIndex < deviceMusicsList.size) {
+                            return deviceMusicsList[windowIndex].description
+                        }
+                        return MediaDescriptionCompat.Builder().build()
+                    }
+                    Playlist.ONLINE_RADIO_STATIONS -> {
+                        if (windowIndex < onlineStationsList.size) {
+                            return onlineStationsList[windowIndex].description
+                        }
+                        return MediaDescriptionCompat.Builder().build()
+                    }
                 }
-                return MediaDescriptionCompat.Builder().build()
             }
         })
         mediaSessionConnector.setPlayer(player)
@@ -125,7 +195,7 @@ open class MusicService : MediaBrowserServiceCompat() {
 
         notificationManager.setPlayer(player)
 
-        player.setMediaItems(deviceMusics.map { mi ->
+        player.setMediaItems(deviceMusicsList.map { mi ->
             MediaItem.Builder()
                 .setUri(mi.description.mediaUri!!)
                 .setTag(mi)
@@ -184,44 +254,49 @@ open class MusicService : MediaBrowserServiceCompat() {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot? {
-        return BrowserRoot("root", Bundle())
+        return BrowserRoot(currentPlaylist.name, null)
     }
 
     override fun onLoadChildren(
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
-        var newDeviceMusics = loadDeviceMusics()
-        var currentMusicsMap = hashMapOf<String?, Pair<Int, MediaBrowserCompat.MediaItem>>()
-        deviceMusics.forEachIndexed {
-            index, dm -> currentMusicsMap[dm.mediaId] = Pair(index, dm)
-        }
-        newDeviceMusics.forEach { nDm ->
-            run {
-                if (!currentMusicsMap.containsKey(nDm.mediaId)) {
-                    Log.e("addMediaItem", nDm.mediaId.toString())
-                    player.addMediaItem(
-                        MediaItem.Builder()
-                            .setUri(nDm.description.mediaUri!!)
-                            .setTag(nDm)
-                            .build()
-                    )
-                } else {
-                    currentMusicsMap.remove(nDm.mediaId)
+        when (parentId) {
+            Playlist.DEVICE_MUSICS.name -> {
+                var newDeviceMusics = loadDeviceMusics()
+                var currentMusicsMap = hashMapOf<String?, Pair<Int, MediaBrowserCompat.MediaItem>>()
+                deviceMusicsList.forEachIndexed {
+                        index, dm -> currentMusicsMap[dm.mediaId] = Pair(index, dm)
                 }
+                newDeviceMusics.forEach { nDm ->
+                    run {
+                        if (!currentMusicsMap.containsKey(nDm.mediaId)) {
+                            Log.e("addMediaItem", nDm.mediaId.toString())
+                            player.addMediaItem(
+                                MediaItem.Builder()
+                                    .setUri(nDm.description.mediaUri!!)
+                                    .setTag(nDm)
+                                    .build()
+                            )
+                        } else {
+                            currentMusicsMap.remove(nDm.mediaId)
+                        }
+                    }
+                }
+                currentMusicsMap.values.toTypedArray()
+                    .map { entry -> entry.first }
+                    .sorted()
+                    .reversed()
+                    .forEach {
+                            removeMediaIndex -> player.removeMediaItem(removeMediaIndex)
+                    }
+
+                deviceMusicsList = newDeviceMusics
+
+                result.sendResult(newDeviceMusics)
             }
+            else -> result.sendResult(onlineStationsList)
         }
-        currentMusicsMap.values.toTypedArray()
-            .map { entry -> entry.first }
-            .sorted()
-            .reversed()
-            .forEach {
-                removeMediaIndex -> player.removeMediaItem(removeMediaIndex)
-            }
-
-        deviceMusics = newDeviceMusics
-
-        result.sendResult(newDeviceMusics)
     }
 
     override fun onDestroy() {
