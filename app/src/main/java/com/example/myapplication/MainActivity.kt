@@ -275,6 +275,18 @@ class MainActivity : AppCompatActivity() {
                             playlist: Playlist,
                             onSwitch: () -> Unit
                             ->
+                            if(playSoundFrom == Playlist.DEVICE_MUSICS.name) {
+                                deviceMusicsListAdapterDataSet[
+                                    currentMusicId
+                                ].isPlay = false
+                                deviceMusicsListAdapter.notifyDataSetChanged()
+                            } else {
+                                radioStationsListAdapterDataSet[
+                                    currentMusicId
+                                ].isPlay = false
+                                radioStationsListAdapter.notifyDataSetChanged()
+                            }
+                            progress.progress = 0
                             playSoundFrom = playlist.name
                             val params = Bundle()
                             params.putString("playlist", playlist.name)
@@ -298,6 +310,7 @@ class MainActivity : AppCompatActivity() {
                             musicId ->
                             if(playSoundFrom != Playlist.DEVICE_MUSICS.name) {
                                 switchPlaylist(Playlist.DEVICE_MUSICS) {
+                                    currentMusicId = musicId
                                     changeMusicOrPlayStop(musicId)
                                 }
                             } else {
@@ -309,6 +322,7 @@ class MainActivity : AppCompatActivity() {
                             if(playSoundFrom != Playlist.ONLINE_RADIO_STATIONS.name) {
                                 Log.e("test", "this ((()))")
                                 switchPlaylist(Playlist.ONLINE_RADIO_STATIONS) {
+                                    currentMusicId = musicId
                                     changeMusicOrPlayStop(musicId)
                                 }
                             } else {
@@ -335,7 +349,7 @@ class MainActivity : AppCompatActivity() {
                         val handler = Handler()
                         handler.postDelayed(object : Runnable{
                             override fun run() {
-                                handler.postDelayed(this, 1000)
+                                handler.postDelayed(this, 10000)
                                 if(
                                     isSkipSeekBarUpdate ||
                                     playSoundFrom == Playlist.ONLINE_RADIO_STATIONS.name

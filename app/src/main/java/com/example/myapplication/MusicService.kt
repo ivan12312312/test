@@ -2,18 +2,14 @@ package com.example.myapplication
 
 import android.annotation.SuppressLint
 import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Bitmap
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.Bundle
-import android.os.ResultReceiver
 import android.provider.MediaStore
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
@@ -22,7 +18,6 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.core.content.getSystemService
 import androidx.media.MediaBrowserServiceCompat
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
@@ -105,14 +100,17 @@ open class MusicService : MediaBrowserServiceCompat() {
             Log.e("command_--", command)
             Log.e("command_--", MusicServiceCommands.SWITCH_PLAYLIST.name)
             Log.e("command_--", extras.toString())
-            if(command != MusicServiceCommands.SWITCH_PLAYLIST.name || extras == null) {
-                Log.e("command_-- AAAAAAAAAAAAAAAAAAA", (command !== MusicServiceCommands.SWITCH_PLAYLIST.name).toString())
+            if (command != MusicServiceCommands.SWITCH_PLAYLIST.name || extras == null) {
+                Log.e(
+                    "command_-- AAAAAAAAAAAAAAAAAAA",
+                    (command !== MusicServiceCommands.SWITCH_PLAYLIST.name).toString()
+                )
                 Log.e("command_-- AAAAAAAAAAAAAAAAAAA", (extras == null).toString())
                 return@registerCustomCommandReceiver false
             }
             Log.e("command", command)
 
-            when(extras.getString("playlist")) {
+            when (extras.getString("playlist")) {
                 Playlist.DEVICE_MUSICS.name -> {
                     currentPlaylist = Playlist.DEVICE_MUSICS
                     player.setMediaItems(deviceMusicsList.map { mi ->
@@ -143,7 +141,7 @@ open class MusicService : MediaBrowserServiceCompat() {
                 player: Player,
                 windowIndex: Int
             ): MediaDescriptionCompat {
-                when(currentPlaylist) {
+                when (currentPlaylist) {
                     Playlist.DEVICE_MUSICS -> {
                         if (windowIndex < deviceMusicsList.size) {
                             return deviceMusicsList[windowIndex].description
@@ -166,7 +164,7 @@ open class MusicService : MediaBrowserServiceCompat() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                 super.onPlaybackStateChanged(state)
                 mediaController.playbackState
-                if(state?.state == 3) {
+                if (state?.state == 3) {
                     audioManager.requestAudioFocus(focusRequest)
                 }
             }
@@ -206,6 +204,7 @@ open class MusicService : MediaBrowserServiceCompat() {
 
     private inner class PlayerNotificationListener :
         PlayerNotificationManager.NotificationListener {
+        @SuppressLint("UnspecifiedImmutableFlag")
         override fun onNotificationPosted(
             notificationId: Int,
             notification: Notification,
@@ -232,8 +231,16 @@ open class MusicService : MediaBrowserServiceCompat() {
     private inner class DescriptionAdapter(private val controller: MediaControllerCompat) :
         PlayerNotificationManager.MediaDescriptionAdapter {
 
-        override fun createCurrentContentIntent(player: Player): PendingIntent? =
-            controller.sessionActivity
+        @SuppressLint("UnspecifiedImmutableFlag")
+        override fun createCurrentContentIntent(player: Player): PendingIntent? {
+            val myIntent = Intent(this@MusicService, MainActivity::class.java)
+            return PendingIntent.getActivity(
+                this@MusicService,
+                0,
+                myIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
 
         override fun getCurrentContentText(player: Player): String {
             return mediaController.metadata.description.subtitle.toString()
