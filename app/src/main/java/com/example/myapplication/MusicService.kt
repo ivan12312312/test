@@ -187,7 +187,6 @@ open class MusicService : MediaBrowserServiceCompat() {
             mediaSession.sessionToken
         )
 
-        notificationManager.setSmallIcon(R.drawable.ic_launcher_foreground)
         notificationManager.setUseRewindAction(false)
         notificationManager.setUseFastForwardAction(false)
 

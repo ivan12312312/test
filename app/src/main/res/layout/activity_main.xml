@@ -14,7 +14,7 @@
 		app:layout_constraintRight_toLeftOf="@id/switch_to_list_radio_stations"
 		android:layout_height="32dp"
 		android:layout_width="0dp"
-		android:src="@drawable/ic_play"
+		android:src="@drawable/musics_list"
 		android:background="@drawable/roundcorner_rectangle_top_left_round"
 		/>
 	<ImageButton
@@ -24,7 +24,7 @@
 		app:layout_constraintRight_toRightOf="@id/player_right"
 		android:layout_height="32dp"
 		android:layout_width="0dp"
-		android:src="@drawable/ic_play"
+		android:src="@drawable/stations_list"
 		android:background="@drawable/roundcorner_rectangle_top_right_round"
 		/>
 

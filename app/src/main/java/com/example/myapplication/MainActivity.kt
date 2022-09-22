@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ComponentName
+import android.drm.DrmStore.Playback
 import android.media.browse.MediaBrowser
 import android.media.session.PlaybackState
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlin.properties.Delegates
 
 class PlaylistItem(
+    public val id: Int,
     public val title: String,
     public val subtitle: String,
     public var isPlay: Boolean,
@@ -69,7 +71,7 @@ class PlaylistAdapter(
         val playlistItem = dataSet[position]
         viewHolder.title.text = playlistItem.title
         viewHolder.subtitle.text = playlistItem.subtitle
-        viewHolder.playStopButton.setOnClickListener { onItemClick(position) }
+        viewHolder.playStopButton.setOnClickListener { onItemClick(playlistItem.id) }
         if(playlistItem.subtitle.isEmpty()) {
             viewHolder.subtitle.visibility = View.GONE
         } else {
@@ -159,7 +161,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     currentViewList = mediaBrowser.root
 
-                    var currentMusicId = 0
+                    var currentMusicId = -1
                     var currentMusicIsPlay: Boolean by Delegates.observable(false) { _, old, new ->
                         if(old == new) {
                             return@observable
@@ -185,7 +187,9 @@ class MainActivity : AppCompatActivity() {
                         )
 
                         currentMusicId     = mediaController.playbackState.activeQueueItemId.toInt()
-                        currentMusicIsPlay = mediaController.playbackState.state == PlaybackState.STATE_PLAYING
+                        currentMusicIsPlay =
+                            mediaController.playbackState.state == PlaybackState.STATE_PLAYING ||
+                            mediaController.playbackState.state == PlaybackState.STATE_BUFFERING
 
                         if(currentMusicIsPlay) {
                             when(playSoundFrom) {
@@ -264,6 +268,9 @@ class MainActivity : AppCompatActivity() {
                                 if(mediaController.playbackState.state == PlaybackState.STATE_PLAYING) {
                                     mediaController.transportControls.pause()
                                 } else {
+                                    if(playSoundFrom == Playlist.ONLINE_RADIO_STATIONS.name) {
+                                        mediaController.transportControls.seekTo(Long.MAX_VALUE)
+                                    }
                                     mediaController.transportControls.play()
                                 }
                             } else {
@@ -393,6 +400,9 @@ class MainActivity : AppCompatActivity() {
                             if(currentMusicIsPlay) {
                                 mediaController.transportControls.pause()
                             } else {
+                                if(playSoundFrom == Playlist.ONLINE_RADIO_STATIONS.name) {
+                                    mediaController.transportControls.seekTo(Long.MAX_VALUE)
+                                }
                                 mediaController.transportControls.play()
                             }
                         }
@@ -409,6 +419,7 @@ class MainActivity : AppCompatActivity() {
                                 children: MutableList<MediaBrowserCompat.MediaItem>
                             ) {
                                 deviceMusicsListAdapterDataSet = children.mapIndexed { index, mi -> PlaylistItem(
+                                    index,
                                     mi.description.title.toString(),
                                     mi.description.subtitle.toString(),
                                     false
@@ -427,6 +438,7 @@ class MainActivity : AppCompatActivity() {
                                 children: MutableList<MediaBrowserCompat.MediaItem>
                             ) {
                                 radioStationsListAdapterDataSet = children.mapIndexed { index, mi -> PlaylistItem(
+                                    index,
                                     mi.description.title.toString(),
                                     mi.description.subtitle.toString(),
                                     false
@@ -446,9 +458,10 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        mediaController?.unregisterCallback(mediaControllerCallback)
+        mediaController.unregisterCallback(mediaControllerCallback)
 
-        mediaBrowser.unsubscribe("/")
+        mediaBrowser.unsubscribe(Playlist.DEVICE_MUSICS.name)
+        mediaBrowser.unsubscribe(Playlist.ONLINE_RADIO_STATIONS.name)
         mediaBrowser.disconnect()
     }
 }
