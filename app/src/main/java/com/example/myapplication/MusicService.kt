@@ -110,6 +110,9 @@ open class MusicService : MediaBrowserServiceCompat() {
             }
             Log.e("command", command)
 
+            val selectedMusic = extras.getInt("selectedMusic")
+
+            player.stop()
             when (extras.getString("playlist")) {
                 Playlist.DEVICE_MUSICS.name -> {
                     currentPlaylist = Playlist.DEVICE_MUSICS
@@ -118,7 +121,7 @@ open class MusicService : MediaBrowserServiceCompat() {
                             .setUri(mi.description.mediaUri!!)
                             .setTag(mi)
                             .build()
-                    })
+                    }, selectedMusic, 0)
                 }
                 Playlist.ONLINE_RADIO_STATIONS.name -> {
                     currentPlaylist = Playlist.ONLINE_RADIO_STATIONS
@@ -127,7 +130,7 @@ open class MusicService : MediaBrowserServiceCompat() {
                             .setUri(mi.description.mediaUri!!)
                             .setTag(mi)
                             .build()
-                    })
+                    }, selectedMusic, 0)
                 }
             }
             mediaSessionConnector.invalidateMediaSessionPlaybackState()

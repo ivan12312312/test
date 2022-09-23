@@ -210,10 +210,13 @@ class MainActivity : AppCompatActivity() {
                             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                                 if(
                                     state == null ||
-                                    state.state == PlaybackState.STATE_BUFFERING
+                                    state.state == PlaybackState.STATE_NONE
                                 ) {
                                     return
                                 }
+
+                                Log.e("debug", state?.state.toString())
+                                Log.e("debug", state?.activeQueueItemId.toString())
 
                                 val currentPlaylistAdapter =
                                     if(playSoundFrom == Playlist.DEVICE_MUSICS.name) {
@@ -228,9 +231,20 @@ class MainActivity : AppCompatActivity() {
                                         radioStationsListAdapterDataSet
                                     }
 
+                                if(
+                                    currentMusicId == state.activeQueueItemId.toInt() &&
+                                    currentPlaylistAdapterDataset[
+                                       state.activeQueueItemId.toInt()
+                                    ].isPlay &&
+                                    (state.state == PlaybackState.STATE_PLAYING ||
+                                     state.state == PlaybackState.STATE_BUFFERING)
+                                ) {
+                                    return
+                                }
                                 currentPlaylistAdapterDataset[currentMusicId].isPlay = false
                                 when(state.state) {
-                                    PlaybackState.STATE_PLAYING -> {
+                                    PlaybackState.STATE_PLAYING,
+                                    PlaybackState.STATE_BUFFERING -> {
                                         currentPlaylistAdapterDataset[
                                            state.activeQueueItemId.toInt()
                                         ].isPlay = true
@@ -280,23 +294,21 @@ class MainActivity : AppCompatActivity() {
                         }
                         var switchPlaylist = {
                             playlist: Playlist,
+                            selectedMusic: Int,
                             onSwitch: () -> Unit
                             ->
                             if(playSoundFrom == Playlist.DEVICE_MUSICS.name) {
-                                deviceMusicsListAdapterDataSet[
-                                    currentMusicId
-                                ].isPlay = false
+                                deviceMusicsListAdapterDataSet.forEach { i -> i.isPlay = false }
                                 deviceMusicsListAdapter.notifyDataSetChanged()
                             } else {
-                                radioStationsListAdapterDataSet[
-                                    currentMusicId
-                                ].isPlay = false
+                                radioStationsListAdapterDataSet.forEach { i -> i.isPlay = false }
                                 radioStationsListAdapter.notifyDataSetChanged()
                             }
                             progress.progress = 0
                             playSoundFrom = playlist.name
                             val params = Bundle()
                             params.putString("playlist", playlist.name)
+                            params.putInt("selectedMusic", selectedMusic)
                             Log.e("test", "send command")
                             mediaController.sendCommand(
                                 MusicServiceCommands.SWITCH_PLAYLIST.name,
@@ -316,7 +328,7 @@ class MainActivity : AppCompatActivity() {
                         deviceMusicsListAdapter.onItemClick = {
                             musicId ->
                             if(playSoundFrom != Playlist.DEVICE_MUSICS.name) {
-                                switchPlaylist(Playlist.DEVICE_MUSICS) {
+                                switchPlaylist(Playlist.DEVICE_MUSICS, musicId) {
                                     currentMusicId = musicId
                                     changeMusicOrPlayStop(musicId)
                                 }
@@ -328,7 +340,7 @@ class MainActivity : AppCompatActivity() {
                             musicId ->
                             if(playSoundFrom != Playlist.ONLINE_RADIO_STATIONS.name) {
                                 Log.e("test", "this ((()))")
-                                switchPlaylist(Playlist.ONLINE_RADIO_STATIONS) {
+                                switchPlaylist(Playlist.ONLINE_RADIO_STATIONS, musicId) {
                                     currentMusicId = musicId
                                     changeMusicOrPlayStop(musicId)
                                 }
@@ -356,7 +368,7 @@ class MainActivity : AppCompatActivity() {
                         val handler = Handler()
                         handler.postDelayed(object : Runnable{
                             override fun run() {
-                                handler.postDelayed(this, 10000)
+                                handler.postDelayed(this, 1000)
                                 if(
                                     isSkipSeekBarUpdate ||
                                     playSoundFrom == Playlist.ONLINE_RADIO_STATIONS.name
