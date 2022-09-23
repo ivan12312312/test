@@ -183,6 +183,7 @@ open class MusicService : MediaBrowserServiceCompat() {
             setNotificationListener(PlayerNotificationListener())
             setChannelNameResourceId(R.string.notification_channel)
             setChannelDescriptionResourceId(R.string.notification_channel)
+            setSmallIconResourceId(R.drawable.frame_4__2_)
         }
 
         notificationManager = notificationManagerBuilder.build()
