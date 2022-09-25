@@ -1,5 +1,5 @@
 <resources>
-	<string name="app_name">Black/white player</string>
+	<string name="app_name">BlackWhite Player</string>
 	<string name="notification_channel">Now Playing</string>
 	<string name="notification_channel_description">Shows what music is currently playing in Black/white player</string>
 </resources>

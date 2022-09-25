@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.annotation.SuppressLint
 import android.app.Notification
+import android.app.Notification.VISIBILITY_PRIVATE
 import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Bitmap
@@ -17,6 +18,7 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
 import com.google.android.exoplayer2.ExoPlayer
@@ -190,9 +192,12 @@ open class MusicService : MediaBrowserServiceCompat() {
         notificationManager.setMediaSessionToken(
             mediaSession.sessionToken
         )
+        notificationManager.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
 
         notificationManager.setUseRewindAction(false)
         notificationManager.setUseFastForwardAction(false)
+        notificationManager.setUseNextActionInCompactView(true)
+        notificationManager.setUsePreviousActionInCompactView(true)
 
         notificationManager.setPlayer(player)
 
