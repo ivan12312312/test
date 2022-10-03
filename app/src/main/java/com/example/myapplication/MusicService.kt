@@ -10,6 +10,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.media.MediaBrowserCompat
@@ -18,6 +19,7 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
@@ -74,16 +76,18 @@ open class MusicService : MediaBrowserServiceCompat() {
         super.onCreate()
 
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
-            setAudioAttributes(AudioAttributes.Builder().run {
-                setUsage(AudioAttributes.USAGE_GAME)
-                setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+        val focusRequest = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
+                setAudioAttributes(AudioAttributes.Builder().run {
+                    setUsage(AudioAttributes.USAGE_GAME)
+                    setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    build()
+                })
+                setAcceptsDelayedFocusGain(true)
+                setOnAudioFocusChangeListener { _ -> player.pause() }
                 build()
-            })
-            setAcceptsDelayedFocusGain(true)
-            setOnAudioFocusChangeListener { _ -> player.pause() }
-            build()
-        }
+            }
+        } else null
 
         mediaSession = MediaSessionCompat(this, "MusicService")
             .apply {
@@ -99,18 +103,9 @@ open class MusicService : MediaBrowserServiceCompat() {
 
         val mediaSessionConnector = MediaSessionConnector(mediaSession)
         mediaSessionConnector.registerCustomCommandReceiver { _, command, extras, cb ->
-            Log.e("command_--", command)
-            Log.e("command_--", MusicServiceCommands.SWITCH_PLAYLIST.name)
-            Log.e("command_--", extras.toString())
             if (command != MusicServiceCommands.SWITCH_PLAYLIST.name || extras == null) {
-                Log.e(
-                    "command_-- AAAAAAAAAAAAAAAAAAA",
-                    (command !== MusicServiceCommands.SWITCH_PLAYLIST.name).toString()
-                )
-                Log.e("command_-- AAAAAAAAAAAAAAAAAAA", (extras == null).toString())
                 return@registerCustomCommandReceiver false
             }
-            Log.e("command", command)
 
             val selectedMusic = extras.getInt("selectedMusic")
 
@@ -168,8 +163,11 @@ open class MusicService : MediaBrowserServiceCompat() {
         mediaController.registerCallback(object : MediaControllerCompat.Callback() {
             override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
                 super.onPlaybackStateChanged(state)
-                mediaController.playbackState
-                if (state?.state == 3) {
+                if (
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                    focusRequest != null &&
+                    state?.state == 3
+                ) {
                     audioManager.requestAudioFocus(focusRequest)
                 }
             }
